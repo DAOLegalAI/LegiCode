@@ -1,0 +1,35 @@
+package main
+
+import (
+    "fmt"
+
+    "github.com/hyperledger/fabric-contract-api-go/contractapi"
+    // Import each module
+    "your_module_path/dataasset"
+    "your_module_path/datarights"
+    "your_module_path/datatransactions"
+    "your_module_path/contractdetails"
+    "your_module_path/gdprcompliance"
+)
+
+type DataSharingAgreementContract struct {
+    contractapi.Contract
+    // Embed all other contracts
+    DataAssetContract     dataasset.DataAssetContract
+    DataRightsContract    datarights.DataRightsContract
+    DataTransactionsContract datatransactions.DataTransactionsContract
+    ContractDetailsContract  contractdetails.ContractDetailsContract
+    GDPRComplianceContract   gdprcompliance.GDPRComplianceContract
+}
+
+func main() {
+    chaincode, err := contractapi.NewChaincode(new(DataSharingAgreementContract))
+    if err != nil {
+        fmt.Printf("Error create data sharing agreement chaincode: %s", err.Error())
+        return
+    }
+
+    if err := chaincode.Start(); err != nil {
+        fmt.Printf("Error starting data sharing agreement chaincode: %s", err.Error())
+    }
+}

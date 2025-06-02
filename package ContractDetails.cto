@@ -1,0 +1,54 @@
+package ContractDetails
+
+import (
+    "encoding/json"
+    "fmt"
+
+    "github.com/hyperledger/fabric-contract-api-go/contractapi"
+)
+
+type List []string
+
+// ContractDetails represents additional details of the contract in the ledger
+type ContractDetails struct {
+    ContractID             string   `json:"contractId"`
+    Parties                List     `json:"parties"`
+    Term                   string   `json:"term"`
+    DataSecurityRequirement string   `json:"dataSecurityRequirement"`
+    ConfidentialityClause  string   `json:"confidentialityClause"`
+    SpecialConditions      List     `json:"specialConditions"`
+}
+type ContractDetailsContract struct {
+    contractapi.Contract
+}
+// SecureDataTransfer checks and performs data transfer under the specified conditions
+func (contract *ContractDetailsContract) SecureDataTransfer(ctx contractapi.TransactionContextInterface, contractDetailsID string, transferMethod string) error {
+    detailsJSON, err := ctx.GetStub().GetState(contractDetailsID)
+    if err != nil {
+        return fmt.Errorf("failed to get contract details: %v", err)
+    }
+    if detailsJSON == nil {
+        return fmt.Errorf("contract details %s does not exist", contractDetailsID)
+    }
+
+    var details ContractDetails
+    err = json.Unmarshal(detailsJSON, &details)
+    if err != nil {
+        return fmt.Errorf("failed to unmarshal contract details: %v", err)
+    }
+
+    // Implement the logic to check if the agreement is active and today is the correct transfer frequency date
+    agreementIsActive := checkAgreementIsActive() // Placeholder function to be replaced with actual logic
+    currentDateMatchesFrequency := checkCurrentDateMatchesFrequency(details.Term) // Implement this function based on your frequency terms
+
+    if agreementIsActive && currentDateMatchesFrequency {
+        // Logic to perform data transfer
+        // This could involve updating the ledger, initiating actual data transfer via APIs, etc.
+        fmt.Printf("Performing data transfer using method %s\n", transferMethod)
+        // Update ledger with transfer records or logs
+        // ...
+        return nil
+    } else {
+        return fmt.Errorf("conditions not met for secure data transfer under contract %s", contractDetailsID)
+    }
+}

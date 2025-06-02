@@ -1,0 +1,57 @@
+package GDPRCompliance
+
+import (
+    "encoding/json"
+    "fmt"
+
+    "github.com/hyperledger/fabric-contract-api-go/contractapi"
+)
+
+// GDPRCompliance represents GDPR compliance details in the ledger
+type GDPRCompliance struct {
+    ComplianceClause      string `json:"complianceClause"`
+    TerminationNoticePeriod string `json:"terminationNoticePeriod"`
+    DataProtectionOfficer string `json:"dataProtectionOfficer"`
+}
+type GDPRComplianceContract struct {
+    contractapi.Contract
+}
+// GDPRComplianceEnforcement checks and enforces GDPR compliance based on the given conditions
+func (contract *GDPRComplianceContract) GDPRComplianceEnforcement(ctx contractapi.TransactionContextInterface, complianceID string) error {
+    complianceJSON, err := ctx.GetStub().GetState(complianceID)
+    if err != nil {
+        return fmt.Errorf("failed to get GDPR compliance details: %v", err)
+    }
+    if complianceJSON == nil {
+        return fmt.Errorf("GDPR compliance details %s does not exist", complianceID)
+    }
+
+    var compliance GDPRCompliance
+    err = json.Unmarshal(complianceJSON, &compliance)
+    if err != nil {
+        return fmt.Errorf("failed to unmarshal GDPR compliance details: %v", err)
+    }
+
+    // Implement the logic to enforce GDPR compliance based on the compliance clause
+    // This might involve logging, notifying DPO, updating records, etc.
+    fmt.Printf("Enforcing GDPR compliance based on clause: %s\n", compliance.ComplianceClause)
+    // Update ledger with compliance enforcement records or logs
+    // ...
+
+    return nil
+}
+
+// TerminationProcedure handles the termination process based on the received termination notice
+func (contract *GDPRComplianceContract) TerminationProcedure(ctx contractapi.TransactionContextInterface, complianceID string) error {
+    // Retrieve and unmarshal compliance details from the ledger
+    // ...
+
+    // Check if a termination notice has been received
+    // Implement logic based on your application's termination notice handling
+    // This might involve updating the ledger status, notifying relevant parties, etc.
+    fmt.Println("Commencing termination procedure based on termination notice period")
+    // Update ledger with termination details
+    // ...
+
+    return nil
+}

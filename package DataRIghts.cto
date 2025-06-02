@@ -1,0 +1,123 @@
+package main
+
+import (
+    "encoding/json"
+    "fmt"
+
+    "github.com/hyperledger/fabric-contract-api-go/contractapi"
+)
+
+type DataRights struct {
+    RightID      string `json:"rightId"`
+    AssetID      string `json:"assetId"`
+    RightType    string `json:"rightType"`
+    RightHolder  string `json:"rightHolder"`
+}
+type DataRightsContract struct {
+    contractapi.Contract
+}
+// EnforceAccessRights checks and enforces the access rights based on the given conditions
+func (contract *DataRightsContract) EnforceAccessRights(ctx contractapi.TransactionContextInterface, rightID string, rightType string) error {
+    rightsJSON, err := ctx.GetStub().GetState(rightID)
+    if err != nil {
+        return fmt.Errorf("failed to get rights: %v", err)
+    }
+    if rightsJSON == nil {
+        return fmt.Errorf("right %s does not exist", rightID)
+    }
+
+    var rights DataRights
+    err = json.Unmarshal(rightsJSON, &rights)
+    if err != nil {
+        return fmt.Errorf("failed to unmarshal rights: %v", err)
+    }
+
+    // Check if the agreement is active and data is provided based on external functions (to be implemented)
+    agreementIsActive := checkAgreementIsActive() // Placeholder for actual implementation
+    dataProvided := checkDataProvided()          // Placeholder for actual implementation
+
+    // Check if the right type is one of the allowed types
+    allowedTypes := map[string]bool{"Access": true, "Analysis": true, "Both": true}
+    _, allowed := allowedTypes[rights.RightType]
+
+    // If conditions are met, enforce access rights
+    if agreementIsActive && dataProvided && allowed {
+        // Logic to enforce access rights
+        // This could involve updating the ledger, notifying parties, or other actions
+        fmt.Printf("Access rights for %s are enforced with type %s\n", rights.RightID, rights.RightType)
+        return nil
+    } else {
+        // Log error if conditions are not met
+        return fmt.Errorf("access rights enforcement conditions not met for right %s of type %s", rights.RightID, rights.RightType)
+    }
+}
+
+
+
+func checkDataProvided(ctx contractapi.TransactionContextInterface, dataAssetID string) (bool, error) {
+    dataProvisionKey := fmt.Sprintf("DataProvision_%s", dataAssetID)
+    dataProvisionRecord, err := ctx.GetStub().GetState(dataProvisionKey)
+    if err != nil {
+        return false, fmt.Errorf("error retrieving data provision record: %v", err)
+    }
+
+    if dataProvisionRecord == nil {
+        return false, nil // Data has not been provided
+    }
+
+    
+    var record struct {
+        Timestamp string `json:"timestamp"`
+        IntegrityHash string `json:"integrityHash"` // Optional, depending on your data integrity verification needs
+    }
+
+    err = json.Unmarshal(dataProvisionRecord, &record)
+    if err != nil {
+        return false, fmt.Errorf("failed to unmarshal data provision record: %v", err)
+    }
+
+    // Validate the timestamp to ensure the data was provided within the required timeframe
+    // Parse and compare the record's timestamp with the current date and the agreement's data transfer frequency
+    provisionTime, err := time.Parse(time.RFC3339, record.Timestamp)
+    if err != nil {
+        return false, fmt.Errorf("invalid timestamp in data provision record: %v", err)
+    }
+    if time.Since(provisionTime) > 30*24*time.Hour { // Assuming monthly data transfers as per agreement
+        return false, fmt.Errorf("data provision is outdated")
+    }
+
+    // Optionally, check data integrity hash if relevant to your application
+    // ...
+
+    return true, nil
+}
+
+func (contract *DataRightsContract) EnforceAccessRights(ctx contractapi.TransactionContextInterface, rightID string, rightType string, agreementID string, dataAssetID string) error {
+    // ... existing code to retrieve and unmarshal rights, check agreement and data ...
+
+    if agreementIsActive && dataProvided && allowed {
+        // Record the access in the ledger as a transaction or log entry
+        accessLogKey := fmt.Sprintf("AccessLog_%s_%s", rightID, dataAssetID)
+        accessLog := map[string]string{
+            "timestamp": time.Now().UTC().Format(time.RFC3339),
+            "rightID": rightID,
+            "dataAssetID": dataAssetID,
+        }
+        accessLogJSON, err := json.Marshal(accessLog)
+        if err != nil {
+            return fmt.Errorf("error marshaling access log: %v", err)
+        }
+        err = ctx.GetStub().PutState(accessLogKey, accessLogJSON)
+        if err != nil {
+            return fmt.Errorf("error recording access log: %v", err)
+        }
+
+        // Optionally, send notifications or perform additional actions required when access rights are enforced
+        // ...
+
+        fmt.Printf("Access rights for %s are enforced with type %s\n", rightID, rightType)
+        return nil
+    } else {
+        return fmt.Errorf("access rights enforcement conditions not met for right %s of type %s", rightID, rightType)
+    }
+}
